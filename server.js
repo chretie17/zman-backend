@@ -6,7 +6,10 @@ const mysql = require('mysql2');
 // Initialize Express
 const app = express();
 app.use(cors());
-app.use(bodyParser.json());
+
+// Increase the payload size limit for body-parser
+app.use(bodyParser.json({ limit: '10mb' })); // Increase limit for JSON payloads
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true })); // Increase limit for URL-encoded data
 
 // MySQL connection setup
 const db = mysql.createConnection({
@@ -38,6 +41,8 @@ app.use('/products', productRoutes);
 app.use('/transactions', transactionRoutes);  
 app.use('/ecommerce', inventoryRoutes); 
 app.use('/orders', OrderRoutes);
+app.use('/reports', require('./routes/reportRoutes'))
+
 // Start the server
 const PORT = 5000;
 app.listen(PORT, () => {
