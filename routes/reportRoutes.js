@@ -6,4 +6,5 @@ const router = express.Router();
 // Route to generate and fetch the report
 router.get('/generate', reportController.generateReport);
 router.get('/generateGovernment', reportController.generateGovernmentReport);
+
 module.exports = router;

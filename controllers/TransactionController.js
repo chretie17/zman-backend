@@ -2,38 +2,61 @@ const db = require('../models/db');
 
 // Process Government-Subsidized Sale
 exports.govSale = async (req, res) => {
-  const { productId, quantity, buyerName, phoneNumber, govId } = req.body;
+  const { productId, quantity, buyerName, phoneNumber, govId, beneficiaryDetails } = req.body;
 
   try {
-    const sql = 'SELECT * FROM products WHERE id = ?';
+    const sql = 'SELECT * FROM products WHERE id = ? AND is_subsidized = 1';
     db.query(sql, [productId], (err, products) => {
       if (err || products.length === 0) {
-        return res.status(404).send('Product not found');
+        return res.status(404).send('Subsidized product not found');
       }
 
       const product = products[0];
+
       if (product.stock < quantity) {
-        return res.status(400).send('Not enough stock');
+        return res.status(400).send('Insufficient stock available');
       }
 
-      const subsidyAmount = (product.price * product.subsidy_percentage) / 100;
-      const finalPrice = (product.price - subsidyAmount) * quantity;
+      const totalCost = product.price * quantity;
+      const subsidyAmount = (totalCost * product.subsidy_percentage) / 100;
+      const beneficiaryPays = totalCost - subsidyAmount;
 
-      // Insert transaction for government sale
-      const transactionSql = `INSERT INTO transactions 
-                              (product_id, buyer_name, phone_number, government_id, transaction_type, price, subsidy_applied, final_price, payment_method, transaction_date) 
-                              VALUES (?, ?, ?, ?, 'subsidized', ?, ?, ?, 'field sale', NOW())`;
+      // Insert transaction and include beneficiary details
+      const transactionSql = `
+        INSERT INTO transactions 
+        (product_id, buyer_name, phone_number, government_id, transaction_type, price, subsidy_applied, final_price, payment_method, transaction_date, beneficiary_name, beneficiary_national_id, beneficiary_phone) 
+        VALUES (?, ?, ?, ?, 'subsidized', ?, ?, ?, 'field sale', NOW(), ?, ?, ?)
+      `;
       db.query(
         transactionSql,
-        [productId, buyerName, phoneNumber, govId, product.price, subsidyAmount, finalPrice],
-        (err, result) => {
-          if (err) return res.status(500).send('Error processing transaction');
+        [
+          productId,
+          buyerName,
+          phoneNumber,
+          govId,
+          product.price,
+          subsidyAmount,
+          beneficiaryPays,
+          beneficiaryDetails.name,         // Beneficiary name
+          beneficiaryDetails.national_id,  // Beneficiary national ID
+          beneficiaryDetails.phone,        // Beneficiary phone number
+        ],
+        (err) => {
+          if (err) {
+            return res.status(500).send('Error processing transaction');
+          }
 
-          // Update stock after the transaction
+          // Update product stock
           const updateStockSql = 'UPDATE products SET stock = stock - ? WHERE id = ?';
           db.query(updateStockSql, [quantity, productId]);
 
-          res.send('Government-Subsidized Sale completed successfully');
+          res.json({
+            message: 'Government-Subsidized Sale completed successfully',
+            totalCost,
+            subsidyAmount,
+            beneficiaryPays,
+            beneficiaryDetails,
+          });
         }
       );
     });
@@ -183,3 +206,48 @@ exports.updateTransaction = async (req, res) => {
       res.status(500).send('Error adding transaction');
     }
   };
+  exports.getGovTransactions = async (req, res) => {
+    try {
+      const sql = `
+        SELECT 
+          t.*, 
+          p.name AS product_name,
+          t.beneficiary_name,
+          t.beneficiary_national_id,
+          t.beneficiary_phone
+        FROM transactions t
+        JOIN products p ON t.product_id = p.id
+        WHERE t.transaction_type = 'subsidized'
+      `;
+      db.query(sql, (err, results) => {
+        if (err) {
+          return res.status(500).send('Error fetching government-subsidized transactions');
+        }
+        res.json(results);
+      });
+    } catch (error) {
+      console.error('Error fetching government transactions:', error);
+      res.status(500).send('Error fetching transactions');
+    }
+  };
+  
+  exports.getPublicTransactions = async (req, res) => {
+    try {
+      const sql = `
+        SELECT t.*, p.name AS product_name 
+        FROM transactions t
+        JOIN products p ON t.product_id = p.id
+        WHERE t.transaction_type = 'public'
+      `;
+      db.query(sql, (err, results) => {
+        if (err) {
+          return res.status(500).send('Error fetching public transactions');
+        }
+        res.json(results);
+      });
+    } catch (error) {
+      console.error('Error fetching public transactions:', error);
+      res.status(500).send('Error fetching transactions');
+    }
+  };
+  

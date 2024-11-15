@@ -6,8 +6,9 @@ const TransactionController = require('../controllers/TransactionController');
 router.post('/govSale', TransactionController.govSale);
 router.post('/publicSale', TransactionController.publicSale);
 router.get('/sales/history', TransactionController.getSalesTransactions);
+router.get('/gov', TransactionController.getGovTransactions);
+router.get('/public', TransactionController.getPublicTransactions);
 
-// Fetch all transactions for admin
 router.get('/admin/history', TransactionController.getAllTransactions);
 
 // New CRUD routes for transactions

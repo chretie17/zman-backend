@@ -1,15 +1,6 @@
 const db = require('../models/db2');
 
 // Helper function to format government payments data
-const formatGovernmentPayments = (results) => {
-  return results.map(row => ({
-    buyerName: row.buyer_name || 'N/A',
-    phoneNumber: row.phone_number || 'N/A',
-    productName: row.product_name,
-    subsidyApplied: row.subsidy_applied,
-    finalPrice: row.final_price,
-  }));
-};
 
 // Helper function to format orders data
 const formatOrders = (results) => {
@@ -101,52 +92,96 @@ exports.generateReport = async (req, res) => {
     res.status(500).json({ message: "Error generating report" });
   }
 };
+
+
+
+
+// Helper function to format subsidized inventory data
+
+// Helper function to format government payments data
+const formatGovernmentPayments = (results) => {
+  return results.map((row) => ({
+    buyerName: row.beneficiary_name || 'N/A',
+    phoneNumber: row.beneficiary_phone || 'N/A',
+    productName: row.product_name || 'N/A',
+    subsidyApplied: row.subsidy_applied || 0,
+    finalPrice: row.final_price || 0,
+    transactionDate: row.transaction_date || 'N/A',
+  }));
+};
+
+// Helper function to format subsidized inventory data
+const formatSubsidizedInventory = (results) => {
+  return results.map((product) => ({
+    productId: product.id || 'N/A',
+    productName: product.name || 'N/A',
+    remainingStock: product.remaining_stock || 0,
+  }));
+};
+
+// Generate a detailed government subsidy report
 exports.generateGovernmentReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const dateFilter = startDate && endDate ? ` AND transaction_date BETWEEN '${startDate}' AND '${endDate}'` : '';
+    const dateFilter = startDate && endDate ? `AND t.transaction_date BETWEEN ? AND ?` : '';
 
-    // 1. Total Subsidy Given
-    const totalSubsidyQuery = `SELECT SUM(subsidy_applied) AS total_subsidy_given 
-                               FROM transactions 
-                               WHERE transaction_type = 'subsidized' ${dateFilter}`;
+    // Queries
+    const totalSubsidyQuery = `
+      SELECT SUM(t.subsidy_applied) AS total_subsidy_given
+      FROM transactions t
+      WHERE t.transaction_type = 'subsidized' ${dateFilter}
+    `;
 
-    // 2. Subsidized Revenue
-    const subsidizedRevenueQuery = `SELECT SUM(final_price) AS total_subsidized_revenue 
-                                    FROM transactions 
-                                    WHERE transaction_type = 'subsidized' ${dateFilter}`;
+    const subsidizedRevenueQuery = `
+      SELECT SUM(t.final_price) AS total_subsidized_revenue
+      FROM transactions t
+      WHERE t.transaction_type = 'subsidized' ${dateFilter}
+    `;
 
-    // 3. List of Farmers/Recipients
-    const recipientListQuery = `SELECT t.buyer_name, t.phone_number, p.name AS product_name, 
-                                       t.subsidy_applied, t.final_price 
-                                FROM transactions t 
-                                JOIN products p ON t.product_id = p.id 
-                                WHERE t.transaction_type = 'subsidized' ${dateFilter}`;
+    const recipientListQuery = `
+      SELECT 
+        t.beneficiary_name AS beneficiary_name,
+        t.beneficiary_phone AS beneficiary_phone,
+        p.name AS product_name,
+        t.subsidy_applied,
+        t.final_price,
+        t.transaction_date
+      FROM transactions t
+      JOIN products p ON t.product_id = p.id
+      WHERE t.transaction_type = 'subsidized' ${dateFilter}
+    `;
 
-    // 4. Inventory Status of Subsidized Products
-    const subsidizedInventoryQuery = `SELECT p.id, p.name, p.stock - COALESCE(SUM(t.final_price / p.price), 0) AS remaining_stock 
-                                      FROM products p 
-                                      LEFT JOIN transactions t ON p.id = t.product_id 
-                                      WHERE p.is_subsidized = 1 
-                                      GROUP BY p.id, p.name`;
+    const subsidizedInventoryQuery = `
+      SELECT 
+        p.id AS id,
+        p.name AS name,
+        p.stock - COALESCE(SUM(t.final_price / p.price), 0) AS remaining_stock
+      FROM products p
+      LEFT JOIN transactions t ON p.id = t.product_id
+      WHERE p.is_subsidized = 1
+      GROUP BY p.id, p.name
+    `;
 
-    const [totalSubsidyResult, subsidizedRevenueResult, recipientListResult, subsidizedInventoryResult] = await Promise.all([
-      db.query(totalSubsidyQuery),
-      db.query(subsidizedRevenueQuery),
-      db.query(recipientListQuery),
-      db.query(subsidizedInventoryQuery)
-    ]);
+    // Execute queries in parallel
+    const [totalSubsidyResult, subsidizedRevenueResult, recipientListResult, subsidizedInventoryResult] =
+      await Promise.all([
+        db.query(totalSubsidyQuery, [startDate, endDate]),
+        db.query(subsidizedRevenueQuery, [startDate, endDate]),
+        db.query(recipientListQuery, [startDate, endDate]),
+        db.query(subsidizedInventoryQuery),
+      ]);
 
+    // Format the results
     const report = {
-      total_subsidy_given: totalSubsidyResult[0]?.total_subsidy_given || 0,
-      total_subsidized_revenue: subsidizedRevenueResult[0]?.total_subsidized_revenue || 0,
-      recipients: recipientListResult,
-      subsidized_inventory: subsidizedInventoryResult
+      totalSubsidyGiven: totalSubsidyResult[0][0]?.total_subsidy_given || 0,
+      totalSubsidizedRevenue: subsidizedRevenueResult[0][0]?.total_subsidized_revenue || 0,
+      recipients: formatGovernmentPayments(recipientListResult[0]),
+      subsidizedInventory: formatSubsidizedInventory(subsidizedInventoryResult[0]),
     };
 
-    res.json({ message: 'Government report generated successfully', report });
+    res.json({ message: 'Government subsidy report generated successfully', report });
   } catch (error) {
     console.error('Error generating government report:', error);
-    res.status(500).send('Error generating government report');
+    res.status(500).send({ message: 'Error generating government report', error: error.message });
   }
 };
