@@ -35,6 +35,7 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const inventoryRoutes = require('./routes/ecommerceRoutes');
 const OrderRoutes = require('./routes/orderRoutes');
 const beneficiariesRoutes = require('./routes/beneficiaryRoutes');
+const AdminRoutes = require('./routes/adminRoutes');
 
 app.use('/auth', authRoutes);  
 app.use('/users', userRoutes); 
@@ -44,7 +45,7 @@ app.use('/ecommerce', inventoryRoutes);
 app.use('/orders', OrderRoutes);
 app.use('/reports', require('./routes/reportRoutes'))
 app.use('/beneficiaries', beneficiariesRoutes);
-
+app.use('/dashboard', AdminRoutes);
 
 // Start the server
 const PORT = 5000;

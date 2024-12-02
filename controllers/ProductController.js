@@ -132,7 +132,6 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// 5. **Handle Government Sales**: Sales with subsidy logic
 exports.handleGovSale = async (req, res) => {
   const { productId, quantity, farmerId } = req.body;
   try {
@@ -149,7 +148,6 @@ exports.handleGovSale = async (req, res) => {
         return res.status(400).send('Not enough stock available');
       }
 
-      // Deduct stock from the government inventory
       const sqlUpdateStock = 'UPDATE products SET stock = stock - ? WHERE id = ?';
       db.query(sqlUpdateStock, [quantity, productId], (err, updateResult) => {
         if (err) {
