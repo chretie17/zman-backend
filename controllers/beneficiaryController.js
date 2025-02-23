@@ -17,10 +17,10 @@ exports.getAllBeneficiaries = async (req, res) => {
 
 // Add a new beneficiary
 exports.addBeneficiary = async (req, res) => {
-  const { name, national_id, phone_number } = req.body;
+  const { name, national_id, phone_number, needs } = req.body;
   try {
-    const sql = 'INSERT INTO approved_beneficiaries (name, national_id, phone_number) VALUES (?, ?, ?)';
-    db.query(sql, [name, national_id, phone_number], (err, result) => {
+    const sql = 'INSERT INTO approved_beneficiaries (name, national_id, phone_number,needs) VALUES (?, ?, ?, ?)';
+    db.query(sql, [name, national_id, phone_number,needs], (err, result) => {
       if (err) {
         console.error('Error adding beneficiary:', err);
         return res.status(500).send('Error adding beneficiary');
@@ -35,10 +35,10 @@ exports.addBeneficiary = async (req, res) => {
 // Update an existing beneficiary
 exports.updateBeneficiary = async (req, res) => {
   const { id } = req.params;
-  const { name, national_id, phone_number } = req.body;
+  const { name, national_id, phone_number, needs } = req.body;
   try {
-    const sql = 'UPDATE approved_beneficiaries SET name = ?, national_id = ?, phone_number = ? WHERE id = ?';
-    db.query(sql, [name, national_id, phone_number, id], (err, result) => {
+    const sql = 'UPDATE approved_beneficiaries SET name = ?, national_id = ?, phone_number = ?, needs = ? WHERE id = ?';
+    db.query(sql, [name, national_id, phone_number, needs, id], (err, result) => {
       if (err) {
         console.error('Error updating beneficiary:', err);
         return res.status(500).send('Error updating beneficiary');
