@@ -230,9 +230,9 @@ const sendStatusUpdateEmail = (orderDetails, status) => {
   const { customer_email: customerEmail, total_price: totalPrice, products } = orderDetails;
 
   const productsList = products.map(product => 
-    `<li class="item">
-      <div class="item-name">${product.name}</div>
-      <div class="item-details">
+    `<li style="background-color: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #1E4B38; list-style: none;">
+      <div style="color: #1E4B38; font-weight: bold; font-size: 16px; margin-bottom: 5px;">${product.name}</div>
+      <div style="color: #666; font-size: 14px;">
         Quantity: ${product.quantity}<br>
         Price: ${Number(product.price).toLocaleString()} RWF
       </div>
@@ -254,43 +254,42 @@ const sendStatusUpdateEmail = (orderDetails, status) => {
     to: customerEmail,
     subject: `${getStatusEmoji(status)} Order Status Update: ${status}`,
     html: `
-      <style>${emailStyles}</style>
-      <div class="email-container">
-        <div class="header">
-          <h1>Order Status Update</h1>
-          <p>Your order has been ${status.toLowerCase()}</p>
+      <div style="max-width: 600px; margin: 0 auto; font-family: 'Arial', sans-serif; background-color: #ffffff; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="background: linear-gradient(135deg, #1E4B38 0%, #2E6E53 100%); color: white; padding: 40px 20px; text-align: center;">
+          <h1 style="margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">Order Status Update</h1>
+          <p style="margin: 10px 0 0; font-size: 16px; opacity: 0.9;">Your order has been ${status.toLowerCase()}</p>
         </div>
         
-        <div class="content">
+        <div style="padding: 30px; background-color: #ffffff;">
           <div style="text-align: center;">
-            <div class="status-badge">
+            <div style="display: inline-block; padding: 12px 25px; border-radius: 25px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin: 20px 0; background: #1E4B38; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
               ${getStatusEmoji(status)} ${status.toUpperCase()}
             </div>
           </div>
           
-          <h2 class="section-title">Order Details</h2>
+          <h2 style="color: #1E4B38; font-size: 22px; margin: 0 0 20px; padding-bottom: 10px; border-bottom: 2px solid #1E4B38;">Order Details</h2>
           
-          <div class="order-details">
-            <ul class="item-list">
+          <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 25px; border-radius: 12px; margin: 20px 0; border: 1px solid #e0e0e0;">
+            <ul style="list-style: none; padding: 0; margin: 0;">
               ${productsList}
             </ul>
             
-            <div class="total-price">
+            <div style="background: linear-gradient(135deg, #1E4B38 0%, #2E6E53 100%); color: white; padding: 20px; border-radius: 8px; font-size: 20px; font-weight: bold; text-align: center; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
               Total Amount: ${Number(totalPrice).toLocaleString()} RWF
             </div>
           </div>
 
-          <div class="divider"></div>
+          <div style="height: 2px; background: linear-gradient(to right, transparent, #1E4B38, transparent); margin: 25px 0;"></div>
 
           <p style="text-align: center; color: #666; margin-top: 25px;">
             Thank you for your patience. We appreciate your business!
           </p>
         </div>
 
-        <div class="footer">
-          <p>Thank you for choosing us!</p>
-          <p>© ${new Date().getFullYear()} Ingabo Plant Health</p>
-          <p>Questions? Contact our support team</p>
+        <div style="background: linear-gradient(135deg, #1E4B38 0%, #2E6E53 100%); color: white; padding: 30px; text-align: center;">
+          <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;">Thank you for choosing us!</p>
+          <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;">© ${new Date().getFullYear()} Ingabo Plant Health</p>
+          <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;">Questions? Contact our support team</p>
         </div>
       </div>
     `,
@@ -308,7 +307,6 @@ const sendStatusUpdateEmail = (orderDetails, status) => {
     });
   });
 };
-
 // Helper function to calculate order summary
 const calculateOrderSummary = (orders) => {
   return orders.reduce((summary, order) => {

@@ -123,7 +123,11 @@ const formatSubsidizedInventory = (results) => {
 exports.generateGovernmentReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const dateFilter = startDate && endDate ? `AND t.transaction_date BETWEEN ? AND ?` : '';
+
+// Adjust endDate to include full day
+const adjustedEndDate = endDate ? adjustEndDateToEndOfDay(endDate) : null;
+
+const dateFilter = startDate && adjustedEndDate ? `AND t.transaction_date BETWEEN ? AND ?` : '';
 
     // Queries
     const totalSubsidyQuery = `
@@ -164,12 +168,13 @@ exports.generateGovernmentReport = async (req, res) => {
 
     // Execute queries in parallel
     const [totalSubsidyResult, subsidizedRevenueResult, recipientListResult, subsidizedInventoryResult] =
-      await Promise.all([
-        db.query(totalSubsidyQuery, [startDate, endDate]),
-        db.query(subsidizedRevenueQuery, [startDate, endDate]),
-        db.query(recipientListQuery, [startDate, endDate]),
-        db.query(subsidizedInventoryQuery),
-      ]);
+    await Promise.all([
+      db.query(totalSubsidyQuery, [startDate, adjustedEndDate]),
+      db.query(subsidizedRevenueQuery, [startDate, adjustedEndDate]),
+      db.query(recipientListQuery, [startDate, adjustedEndDate]),
+      db.query(subsidizedInventoryQuery),
+    ]);
+  
 
     // Format the results
     const report = {
@@ -184,4 +189,10 @@ exports.generateGovernmentReport = async (req, res) => {
     console.error('Error generating government report:', error);
     res.status(500).send({ message: 'Error generating government report', error: error.message });
   }
+};
+// Helper to adjust endDate to 23:59:59
+const adjustEndDateToEndOfDay = (dateString) => {
+  const date = new Date(dateString);
+  date.setHours(23, 59, 59, 999);
+  return date.toISOString().slice(0, 19).replace('T', ' '); // Format as 'YYYY-MM-DD HH:MM:SS'
 };
